@@ -15,7 +15,7 @@ def job_id_from_url(url):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or parsed.hostname not in ("linkedin.com", "www.linkedin.com"):
         raise ValueError(f"Not a LinkedIn URL: {url}")
-    match = re.search(r"/jobs/view/(\\d+)(?:/|$)", parsed.path)
+    match = re.search(r"/jobs/view/(\d+)(?:/|$)", parsed.path)
     if not match:
         raise ValueError(f"Expected LinkedIn /jobs/view/<id>/ URL: {url}")
     return match.group(1)
