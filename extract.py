@@ -1,6 +1,5 @@
 """Capture LinkedIn postings interactively in a visible browser."""
 import argparse
-import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -21,24 +20,43 @@ def main():
         except ValueError as exc:
             parser.error(str(exc))
 
+    saved = skipped = 0
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False)
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         try:
-            for url in args.urls:
-                print(f"Opening {url}")
+            for index, url in enumerate(args.urls, start=1):
+                print(f"\\n[{index}/{len(args.urls)}] Opening {url}")
                 try:
                     page.goto(url, wait_until="domcontentloaded", timeout=45000)
                 except Exception as exc:
                     print(f"Navigation warning: {exc}")
-                input("Review/expand the job in Chromium, then press Enter here to capture...")
+
+                while True:
+                    choice = input(
+                        "[Enter] save  |  [s] skip expired/unavailable  |  [q] quit: "
+                    ).strip().lower()
+                    if choice in ("", "s", "q"):
+                        break
+                    print("Please press Enter, s, or q.")
+
+                if choice == "q":
+                    print("Stopped by user.")
+                    break
+                if choice == "s":
+                    skipped += 1
+                    print("Skipped; no files saved.")
+                    continue
+
                 job = parse_job(page, url)
                 if not job["description"]:
                     print("Warning: no description found. Check access and expand 'Show more'.")
                 json_path, md_path = save_job(job, Path(args.output))
+                saved += 1
                 print(f"Saved {json_path} and {md_path}")
         finally:
             browser.close()
+    print(f"Finished: {saved} saved, {skipped} skipped.")
 
 
 if __name__ == "__main__":
